@@ -916,6 +916,15 @@
             
             // Load file handler
             document.getElementById('load-file').addEventListener('change', loadGame);
+
+            // Add cancel button to admin tools
+            const forgeButton = document.querySelector('#admin-tools .btn-success');
+            const cancelButton = document.createElement('button');
+            cancelButton.className = 'btn btn-warning';
+            cancelButton.innerHTML = '<i class="fas fa-times"></i> Cancel Edit';
+            cancelButton.onclick = cancelEdit;
+            cancelButton.style.marginLeft = '10px';
+            forgeButton.parentNode.appendChild(cancelButton);
         }
         
         // View Navigation
@@ -1265,6 +1274,240 @@
             saveToLocalStorage();
         }
         
+        // Add to appState to track editing
+        appState.editingRecipeIndex = null;
+        appState.editingAltIndex = null;
+
+        // Edit recipe function
+        function editRecipe(index) {
+            const recipe = appState.recipes[index];
+            appState.editingRecipeIndex = index;
+            
+            // Populate form
+            document.getElementById('recipe-name').value = recipe.name;
+            document.getElementById('dm-only').checked = recipe.dmOnly;
+            
+            // Clear existing components
+            document.getElementById('recipe-components').innerHTML = '';
+            document.getElementById('alt-container').innerHTML = '';
+            
+            // Populate primary alternative (index 0)
+            recipe.alternatives[0].forEach(comp => {
+                addComponent();
+                const components = document.getElementById('recipe-components').children;
+                const lastComponent = components[components.length - 1];
+                lastComponent.querySelector('.component-type').value = comp.type;
+                lastComponent.querySelector('.component-value').value = comp.value;
+            });
+            
+            // Add other alternatives
+            for (let i = 1; i < recipe.alternatives.length; i++) {
+                addAlternative();
+                const altContainer = document.querySelectorAll('.alt-recipe')[i-1];
+                const compContainer = altContainer.querySelector('div');
+                
+                recipe.alternatives[i].forEach(comp => {
+                    addComponent(compContainer.id);
+                    const components = compContainer.children;
+                    const lastComponent = components[components.length - 1];
+                    lastComponent.querySelector('.component-type').value = comp.type;
+                    lastComponent.querySelector('.component-value').value = comp.value;
+                });
+            }
+            
+            // Change button to update
+            document.querySelector('#admin-tools .btn-success').innerHTML = 
+                '<i class="fas fa-sync-alt"></i> Update Recipe';
+            document.querySelector('#admin-tools .btn-success').onclick = updateRecipe;
+        }
+
+        // Update recipe function
+        function updateRecipe() {
+            const index = appState.editingRecipeIndex;
+            if (index === null) return;
+            
+            const name = document.getElementById('recipe-name').value.trim();
+            if (!name) {
+                showToast('Please enter a potion name!', 'error');
+                return;
+            }
+            
+            // Get primary components
+            const primaryComponents = [];
+            const compElements = document.querySelectorAll('#recipe-components .component');
+            
+            compElements.forEach(comp => {
+                const type = comp.querySelector('.component-type').value;
+                const value = comp.querySelector('.component-value').value.trim();
+                
+                if (value) {
+                    primaryComponents.push({ type, value });
+                }
+            });
+            
+            if (primaryComponents.length === 0) {
+                showToast('Primary components must have values!', 'error');
+                return;
+            }
+            
+            // Get alternative components
+            const alternatives = [];
+            const altContainers = document.querySelectorAll('.alt-recipe');
+            
+            altContainers.forEach(alt => {
+                const comps = [];
+                const compElements = alt.querySelectorAll('.component');
+                
+                compElements.forEach(comp => {
+                    const type = comp.querySelector('.component-type').value;
+                    const value = comp.querySelector('.component-value').value.trim();
+                    
+                    if (value) {
+                        comps.push({ type, value });
+                    }
+                });
+                
+                if (comps.length > 0) {
+                    alternatives.push(comps);
+                }
+            });
+            
+            // Combine all alternatives
+            const allAlternatives = [primaryComponents, ...alternatives];
+            
+            const dmOnly = document.getElementById('dm-only').checked;
+            
+            // Create new recipe object (even though we're updating, this structure is consistent)
+            const updatedRecipe = {
+                name: name,
+                alternatives: allAlternatives,
+                isSecret: true, // Assuming it remains secret
+                dmOnly: dmOnly
+            };
+            
+            // Update existing recipe instead of pushing new one
+            appState.recipes[index] = updatedRecipe;
+            
+            // Reset editing state
+            appState.editingRecipeIndex = null;
+            document.querySelector('#admin-tools .btn-success').innerHTML = 
+                '<i class="fas fa-hammer"></i> Forge Recipe';
+            document.querySelector('#admin-tools .btn-success').onclick = forgeRecipe;
+            
+            showToast(`Recipe "${name}" updated!`, 'success');
+            
+            // Reset form
+            document.getElementById('recipe-name').value = '';
+            document.getElementById('dm-only').checked = false;
+            document.getElementById('recipe-components').innerHTML = '';
+            addComponent(); // Add one empty component
+            document.getElementById('alt-container').innerHTML = '';
+
+            updateAllRecipesView();
+            saveToLocalStorage();
+        }
+
+        // Delete recipe function
+        function deleteRecipe(index) {
+            if (confirm(`Delete recipe "${appState.recipes[index].name}"?`)) {
+                const name = appState.recipes[index].name;
+                appState.recipes.splice(index, 1);
+                showToast(`Recipe "${name}" deleted!`, 'success');
+                updateAllRecipesView();
+                saveToLocalStorage();
+            }
+        }
+
+        // Edit alternative function
+        function editAlternative(recipeIndex, altIndex) {
+            const recipe = appState.recipes[recipeIndex];
+            appState.editingRecipeIndex = recipeIndex;
+            appState.editingAltIndex = altIndex;
+            
+            // Populate form with just this alternative
+            document.getElementById('recipe-name').value = recipe.name;
+            document.getElementById('dm-only').checked = recipe.dmOnly;
+            
+            // Clear components
+            document.getElementById('recipe-components').innerHTML = '';
+            document.getElementById('alt-container').innerHTML = '';
+            
+            // Add this alternative as primary
+            recipe.alternatives[altIndex].forEach(comp => {
+                addComponent();
+                const components = document.getElementById('recipe-components').children;
+                const lastComponent = components[components.length - 1];
+                lastComponent.querySelector('.component-type').value = comp.type;
+                lastComponent.querySelector('.component-value').value = comp.value;
+            });
+            
+            // Change button to update alternative
+            document.querySelector('#admin-tools .btn-success').innerHTML = 
+                '<i class="fas fa-sync-alt"></i> Update Alternative';
+            document.querySelector('#admin-tools .btn-success').onclick = updateAlternative;
+        }
+
+        // Update alternative function
+        function updateAlternative() {
+            const recipeIndex = appState.editingRecipeIndex;
+            const altIndex = appState.editingAltIndex;
+            if (recipeIndex === null || altIndex === null) return;
+            
+            // Collect components
+            const components = [];
+            const compElements = document.querySelectorAll('#recipe-components .component');
+            compElements.forEach(comp => {
+                const type = comp.querySelector('.component-type').value;
+                const value = comp.querySelector('.component-value').value.trim();
+                if (value) components.push({ type, value });
+            });
+            
+            if (components.length === 0) {
+                showToast('Components must have values!', 'error');
+                return;
+            }
+            
+            // Update the alternative
+            appState.recipes[recipeIndex].alternatives[altIndex] = components;
+            
+            showToast(`Alternative updated for "${appState.recipes[recipeIndex].name}"!`, 'success');
+            cancelEdit();
+            updateAllRecipesView();
+            saveToLocalStorage();
+        }
+
+        // Delete alternative function
+        function deleteAlternative(recipeIndex, altIndex) {
+            const recipe = appState.recipes[recipeIndex];
+            if (recipe.alternatives.length <= 1) {
+                showToast('Cannot delete the only alternative!', 'error');
+                return;
+            }
+            
+            if (confirm(`Delete alternative #${altIndex+1} of "${recipe.name}"?`)) {
+                recipe.alternatives.splice(altIndex, 1);
+                showToast(`Alternative deleted from "${recipe.name}"!`, 'success');
+                updateAllRecipesView();
+                saveToLocalStorage();
+            }
+        }
+
+        // Cancel edit function
+        function cancelEdit() {
+            appState.editingRecipeIndex = null;
+            appState.editingAltIndex = null;
+            document.querySelector('#admin-tools .btn-success').innerHTML = 
+                '<i class="fas fa-hammer"></i> Forge Recipe';
+            document.querySelector('#admin-tools .btn-success').onclick = forgeRecipe;
+            
+            // Reset form
+            document.getElementById('recipe-name').value = '';
+            document.getElementById('dm-only').checked = false;
+            document.getElementById('recipe-components').innerHTML = '';
+            addComponent(); // Add one empty component
+            document.getElementById('alt-container').innerHTML = '';
+        }
+
         // Update all recipes view in admin
         function updateAllRecipesView() {
             const container = document.getElementById('all-recipes');
@@ -1305,8 +1548,47 @@
                         </div>
                     `;
                     
+                    const altActions = document.createElement('div');
+                    altActions.style.display = 'flex';
+                    altActions.style.gap = '10px';
+                    altActions.style.marginTop = '10px';
+                    
+                    const editAltBtn = document.createElement('button');
+                    editAltBtn.className = 'btn';
+                    editAltBtn.innerHTML = '<i class="fas fa-edit"></i> Edit';
+                    editAltBtn.onclick = () => editAlternative(index, altIndex);
+                    
+                    const deleteAltBtn = document.createElement('button');
+                    deleteAltBtn.className = 'btn btn-danger';
+                    deleteAltBtn.innerHTML = '<i class="fas fa-trash"></i> Delete';
+                    deleteAltBtn.onclick = () => deleteAlternative(index, altIndex);
+                    
+                    altActions.appendChild(editAltBtn);
+                    altActions.appendChild(deleteAltBtn);
+                    altDiv.appendChild(altActions);
+
                     card.appendChild(altDiv);
                 });
+
+                // Add edit/delete buttons for the main recipe
+                const actions = document.createElement('div');
+                actions.style.display = 'flex';
+                actions.style.gap = '10px';
+                actions.style.marginTop = '15px';
+                
+                const editBtn = document.createElement('button');
+                editBtn.className = 'btn';
+                editBtn.innerHTML = '<i class="fas fa-edit"></i> Edit Recipe';
+                editBtn.onclick = () => editRecipe(index);
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn btn-danger';
+                deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Delete';
+                deleteBtn.onclick = () => deleteRecipe(index);
+                
+                actions.appendChild(editBtn);
+                actions.appendChild(deleteBtn);
+                card.appendChild(actions);
                 
                 container.appendChild(card);
             });
