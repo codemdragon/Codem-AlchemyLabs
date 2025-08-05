@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Potion Brewer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        :root {
+            --primary: #6a0dad;
+            --secondary: #9c27b0;
+            --dark: #4a0072;
+            --light: #e1bee7;
+            --accent: #ff4081;
+            --success: #4caf50;
+            --warning: #ff9800;
+            --danger: #f44336;
+            --background: #1a1a2e;
+            --card: #16213e;
+            --text: #f8f8f8;
+            --dm-purple: #7e57c2;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--background), #0f3460);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            background: rgba(26, 26, 46, 0.8);
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--primary);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(156, 39, 176, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: var(--light);
+            text-shadow: 0 0 10px rgba(156, 39, 176, 0.7);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: #bb86fc;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .view-container {
+            display: none;
+            background: rgba(22, 33, 62, 0.9);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(106, 13, 173, 0.5);
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .view-container::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" opacity="0.05"><path d="M20,20 Q40,5 50,30 T80,20" stroke="white" fill="none"/></svg>');
+            pointer-events: none;
+        }
+        
+        .active-view {
+            display: block;
+        }
+        
+        nav {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .nav-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        .nav-btn::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: 0.5s;
+            z-index: -1;
+        }
+        
+        .nav-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(156, 39, 176, 0.4);
+        }
+        
+        .nav-btn:hover::before {
+            left: 100%;
+        }
+        
+        .nav-btn i {
+            font-size: 1.2rem;
+        }
+        
+        .panel {
+            background: rgba(30, 30, 46, 0.7);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid var(--primary);
+            position: relative;
+        }
+        
+        .panel-title {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: var(--light);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .panel-title i {
+            color: var(--accent);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #bb86fc;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 2px solid var(--primary);
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 10px rgba(255, 64, 129, 0.3);
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        .btn::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: 0.5s;
+            z-index: -1;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(156, 39, 176, 0.4);
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #d32f2f);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #2e7d32);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning), #ed6c02);
+        }
+        
+        .btn-dm {
+            background: linear-gradient(135deg, var(--dm-purple), #5e35b1);
+        }
+        
+        .flex-container {
+            display: flex;
+            gap: 25px;
+            margin-top: 20px;
+        }
+        
+        .ingredient-grimoire {
+            flex: 1;
+            min-width: 250px;
+        }
+        
+        .brewing-area {
+            flex: 2;
+        }
+        
+        .search-box {
+            position: relative;
+            margin-bottom: 15px;
+        }
+        
+        .search-box i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #bb86fc;
+        }
+        
+        .search-box input {
+            padding-left: 40px;
+        }
+        
+        .ingredient-list {
+            max-height: 300px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 10px;
+            border: 1px solid var(--primary);
+        }
+        
+        .ingredient-item {
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            background: rgba(106, 13, 173, 0.2);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .ingredient-item:hover {
+            background: rgba(106, 13, 173, 0.4);
+            transform: translateX(5px);
+        }
+        
+        .ingredient-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .tag {
+            background: rgba(255, 64, 129, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .tag-remove {
+            cursor: pointer;
+            color: var(--danger);
+        }
+        
+        .dice-roll {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .dice {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), var(--dark));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .dice::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(255,255,255,0.3) 0%, transparent 70%);
+        }
+        
+        .result-panel {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--primary);
+            display: none;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .success {
+            background: rgba(76, 175, 80, 0.2);
+            border-color: var(--success);
+        }
+        
+        .failure {
+            background: rgba(244, 67, 54, 0.2);
+            border-color: var(--danger);
+        }
+        
+        .potion-card {
+            background: rgba(106, 13, 173, 0.2);
+            border: 1px solid var(--primary);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        
+        .potion-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" opacity="0.05"><circle cx="5" cy="5" r="1" fill="white"/></svg>');
+            pointer-events: none;
+        }
+        
+        .potion-name {
+            font-size: 1.3rem;
+            color: var(--light);
+            margin-bottom: 10px;
+        }
+        
+        .potion-ingredients {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .ingredient-badge {
+            background: rgba(255, 64, 129, 0.3);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .export-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .admin-gate {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .password-input {
+            max-width: 400px;
+            margin: 20px auto;
+        }
+        
+        .component {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        
+        .component select {
+            flex: 1;
+        }
+        
+        .component input {
+            flex: 2;
+        }
+        
+        .component button {
+            flex: 0 0 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--danger);
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            background: var(--card);
+            border: 1px solid var(--primary);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .toast.success {
+            border-left: 5px solid var(--success);
+        }
+        
+        .toast.error {
+            border-left: 5px solid var(--danger);
+        }
+        
+        .recipe-alternatives {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed var(--primary);
+        }
+        
+        .alt-title {
+            color: var(--light);
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .alt-title i {
+            color: var(--accent);
+        }
+        
+        .dm-tools {
+            background: rgba(126, 87, 194, 0.15);
+            border: 1px solid var(--dm-purple);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .dm-tools-title {
+            color: #bb86fc;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .potion-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--dm-purple);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+        
+        @media (max-width: 768px) {
+            .flex-container {
+                flex-direction: column;
+            }
+            
+            nav {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .nav-btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .dice-roll {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+        
+        .floating-potions {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            top: 20%;
+            right: 5%;
+            opacity: 0.2;
+            animation: float 8s infinite ease-in-out;
+        }
+        
+        .floating-potions:nth-child(2) {
+            top: 60%;
+            right: 10%;
+            animation-delay: -2s;
+            width: 80px;
+            height: 80px;
+        }
+        
+        .floating-potions:nth-child(3) {
+            top: 40%;
+            left: 5%;
+            animation-delay: -4s;
+            width: 70px;
+            height: 70px;
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(10deg); }
+            100% { transform: translateY(0) rotate(0deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating potion decorations -->
+    <div class="floating-potions">🧪</div>
+    <div class="floating-potions">⚗️</div>
+    <div class="floating-potions">🔮</div>
+    
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-flask"></i> Enhanced Potion Brewer</h1>
+            <p class="subtitle">Brew magical potions with multiple recipes and powerful DM tools</p>
+        </header>
+        
+        <nav>
+            <button class="nav-btn" onclick="showView('brewing-view')">
+                <i class="fas fa-cauldron"></i> Brewing Station
+            </button>
+            <button class="nav-btn" onclick="showView('library-view')">
+                <i class="fas fa-book"></i> Potion Library
+            </button>
+            <button class="nav-btn" onclick="showView('admin-view')">
+                <i class="fas fa-lock"></i> Admin Sanctum
+            </button>
+            <button class="nav-btn" onclick="showView('save-view')">
+                <i class="fas fa-download"></i> Save/Load
+            </button>
+        </nav>
+        
+        <!-- Brewing View -->
+        <div id="brewing-view" class="view-container active-view">
+            <div class="panel">
+                <h2 class="panel-title"><i class="fas fa-cauldron"></i> Brew a New Potion</h2>
+                
+                <div class="flex-container">
+                    <div class="brewing-area">
+                        <div class="form-group">
+                            <label for="base-input">Base Ingredient</label>
+                            <input type="text" id="base-input" placeholder="e.g. Distilled Water">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="temp-input">Temperature</label>
+                            <input type="text" id="temp-input" placeholder="e.g. Burning">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Additional Ingredients</label>
+                            <div class="ingredient-tags" id="item-tags">
+                                <!-- Tags will appear here -->
+                            </div>
+                            <input type="text" id="item-input" placeholder="Type an ingredient and press Enter">
+                        </div>
+                        
+                        <div class="dice-roll">
+                            <div>
+                                <label>Dice Roll (1-20)</label>
+                                <input type="number" id="dice-roll" min="1" max="20" value="10">
+                            </div>
+                            <div class="dice">20</div>
+                            <button class="btn" onclick="attemptBrew()">
+                                <i class="fas fa-magic"></i> Brew Potion
+                            </button>
+                        </div>
+                        
+                        <div class="result-panel" id="result-panel">
+                            <h3 id="result-title"></h3>
+                            <p id="result-desc"></p>
+                        </div>
+                    </div>
+                    
+                    <div class="ingredient-grimoire">
+                        <h3 class="panel-title"><i class="fas fa-search"></i> Ingredient Grimoire</h3>
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="search-items" placeholder="Search arcane ingredients...">
+                        </div>
+                        <div class="ingredient-list" id="ingredient-list">
+                            <!-- Ingredients will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Library View -->
+        <div id="library-view" class="view-container">
+            <div class="panel">
+                <h2 class="panel-title"><i class="fas fa-book"></i> Your Discovered Potions</h2>
+                <div id="discovered-potions">
+                    <!-- Potions will appear here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Admin View -->
+        <div id="admin-view" class="view-container">
+            <div id="admin-gate" class="admin-gate">
+                <h2 class="panel-title"><i class="fas fa-lock"></i> Sanctum of Secrets</h2>
+                <p>Enter the master key to access powerful arcane tools</p>
+                <div class="password-input">
+                    <input type="password" id="admin-key" placeholder="Enter DM Master Key">
+                </div>
+                <button class="btn" onclick="verifyAdmin()">
+                    <i class="fas fa-key"></i> Unlock Sanctum
+                </button>
+            </div>
+            
+            <div id="admin-tools" style="display:none">
+                <div class="panel">
+                    <h2 class="panel-title"><i class="fas fa-hat-wizard"></i> Arcane Recipe Forge</h2>
+                    
+                    <div class="form-group">
+                        <label for="recipe-name">Potion Name</label>
+                        <input type="text" id="recipe-name" placeholder="e.g. Potion of Invisibility">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Recipe Alternative #1</label>
+                        <div id="recipe-components">
+                            <div class="component">
+                                <select class="component-type">
+                                    <option value="base">Base</option>
+                                    <option value="temp">Temperature</option>
+                                    <option value="item">Item</option>
+                                </select>
+                                <input type="text" class="component-value" placeholder="Value/Name">
+                                <button class="btn btn-danger" onclick="removeComponent(this)"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <button class="btn" onclick="addComponent()">
+                            <i class="fas fa-plus"></i> Add Component
+                        </button>
+                    </div>
+                    
+                    <div id="alt-container">
+                        <!-- Additional alternatives will appear here -->
+                    </div>
+                    
+                    <button class="btn" onclick="addAlternative()" style="margin-top: 15px;">
+                        <i class="fas fa-plus-circle"></i> Add Recipe Alternative
+                    </button>
+                    
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label>
+                            <input type="checkbox" id="dm-only"> DM Only (won't be discovered by players)
+                        </label>
+                    </div>
+                    
+                    <button class="btn btn-success" onclick="forgeRecipe()">
+                        <i class="fas fa-hammer"></i> Forge Recipe
+                    </button>
+                </div>
+                
+                <div class="panel">
+                    <h2 class="panel-title"><i class="fas fa-plus-circle"></i> Add New Ingredient</h2>
+                    
+                    <div class="form-group">
+                        <label for="new-ingredient">Ingredient Name</label>
+                        <input type="text" id="new-ingredient" placeholder="e.g. Dragon's Scale">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="ingredient-type">Ingredient Type</label>
+                        <select id="ingredient-type">
+                            <option value="base">Base</option>
+                            <option value="temp">Temperature</option>
+                            <option value="item">Item</option>
+                        </select>
+                    </div>
+                    
+                    <button class="btn" onclick="addIngredient()">
+                        <i class="fas fa-plus"></i> Add to Grimoire
+                    </button>
+                </div>
+                
+                <div class="panel">
+                    <h2 class="panel-title"><i class="fas fa-scroll"></i> All Recipes</h2>
+                    <div id="all-recipes">
+                        <!-- All recipes will be listed here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Save/Load View -->
+        <div id="save-view" class="view-container">
+            <div class="panel">
+                <h2 class="panel-title"><i class="fas fa-download"></i> Save & Load Progress</h2>
+                
+                <div class="export-options">
+                    <button class="btn" onclick="saveGame(true)">
+                        <i class="fas fa-download"></i> Save with Discoveries
+                    </button>
+                    
+                    <button class="btn" onclick="saveGame(false)">
+                        <i class="fas fa-shield-alt"></i> Save without Discoveries (DM Mode)
+                    </button>
+                    
+                    <button class="btn btn-warning" onclick="document.getElementById('load-file').click()">
+                        <i class="fas fa-upload"></i> Load Game
+                    </button>
+                    <input type="file" id="load-file" accept=".json" style="display:none">
+                </div>
+                
+                <div class="dm-tools">
+                    <h3 class="dm-tools-title"><i class="fas fa-wand-sparkles"></i> DM Tools</h3>
+                    <div class="form-group">
+                        <label for="dm-secrets">Import DM Secrets</label>
+                        <input type="file" id="dm-secrets" accept=".json">
+                        <button class="btn btn-dm" onclick="importDmSecrets()" style="margin-top: 10px;">
+                            <i class="fas fa-file-import"></i> Import Secrets
+                        </button>
+                    </div>
+                    
+                    <button class="btn btn-dm" onclick="document.getElementById('dm-export').click()" style="margin-top: 10px;">
+                        <i class="fas fa-file-export"></i> Export Only Discoveries
+                    </button>
+                    <a id="dm-export" style="display:none"></a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="toast" class="toast"></div>
+    
+    <script>
+        // App State
+        const appState = {
+            currentUser: "Alchemist",
+            discoveredPotions: [],
+            dmSecrets: [],
+            ingredients: [
+                { name: "Water", type: "base" },
+                { name: "Distilled Water", type: "base" },
+                { name: "Holy Water", type: "base" },
+                { name: "Oil", type: "base" },
+                { name: "Cooling", type: "temp" },
+                { name: "Flame", type: "temp" },
+                { name: "Burning", type: "temp" },
+                { name: "Freezing", type: "temp" },
+                { name: "Glow Moss", type: "item" },
+                { name: "Spider Eye", type: "item" },
+                { name: "Cave Moss", type: "item" },
+                { name: "Marimo", type: "item" },
+                { name: "Moon Petal", type: "item" },
+                { name: "Dragon Scale", type: "item" }
+            ],
+            recipes: [
+                {
+                    name: "Healing Brew",
+                    alternatives: [
+                        [
+                            { type: "base", value: "Water" },
+                            { type: "temp", value: "Cooling" },
+                            { type: "item", value: "Glow Moss" }
+                        ],
+                        [
+                            { type: "base", value: "Holy Water" },
+                            { type: "temp", value: "Flame" },
+                            { type: "item", value: "Glow Moss" }
+                        ],
+                        [
+                            { type: "base", value: "Holy Water" },
+                            { type: "temp", value: "Flame" },
+                            { type: "item", value: "Marimo" }
+                        ]
+                    ],
+                    isSecret: true,
+                    dmOnly: false
+                },
+                {
+                    name: "Fire Resistance Potion",
+                    alternatives: [
+                        [
+                            { type: "base", value: "Oil" },
+                            { type: "temp", value: "Flame" },
+                            { type: "item", value: "Dragon Scale" }
+                        ]
+                    ],
+                    isSecret: true,
+                    dmOnly: false
+                }
+            ],
+            MASTER_KEY: "Dragon#42" // Default master key
+        };
+        
+        // DOM Elements
+        const views = {
+            brewing: document.getElementById('brewing-view'),
+            library: document.getElementById('library-view'),
+            admin: document.getElementById('admin-view'),
+            save: document.getElementById('save-view'),
+        };
+        
+        // Initialize the app
+        function initApp() {
+            loadIngredients();
+            showView('brewing-view');
+            loadFromLocalStorage();
+            updateLibraryView();
+            
+            // Setup ingredient search
+            document.getElementById('search-items').addEventListener('input', searchIngredients);
+            
+            // Add ingredient on Enter key
+            document.getElementById('item-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && this.value.trim() !== '') {
+                    addIngredientTag(this.value.trim());
+                    this.value = '';
+                }
+            });
+            
+            // Load file handler
+            document.getElementById('load-file').addEventListener('change', loadGame);
+        }
+        
+        // View Navigation
+        function showView(viewId) {
+            // Hide all views
+            Object.values(views).forEach(view => {
+                view.classList.remove('active-view');
+            });
+            
+            // Show selected view
+            document.getElementById(viewId).classList.add('active-view');
+            
+            // If admin view, update recipe list
+            if (viewId === 'admin-view') {
+                updateAllRecipesView();
+            }
+        }
+        
+        // Ingredient Handling
+        function loadIngredients() {
+            const container = document.getElementById('ingredient-list');
+            container.innerHTML = '';
+            
+            appState.ingredients.forEach(ingredient => {
+                const item = document.createElement('div');
+                item.className = 'ingredient-item';
+                item.textContent = ingredient.name;
+                item.onclick = () => {
+                    document.getElementById('item-input').value = ingredient.name;
+                };
+                container.appendChild(item);
+            });
+        }
+        
+        function searchIngredients() {
+            const term = this.value.toLowerCase();
+            const items = document.querySelectorAll('.ingredient-item');
+            
+            items.forEach(item => {
+                if (item.textContent.toLowerCase().includes(term)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+        
+        function addIngredientTag(name) {
+            const tagsContainer = document.getElementById('item-tags');
+            
+            const tag = document.createElement('div');
+            tag.className = 'tag';
+            tag.innerHTML = `
+                ${name}
+                <span class="tag-remove" onclick="removeTag(this)"><i class="fas fa-times"></i></span>
+            `;
+            
+            tagsContainer.appendChild(tag);
+        }
+        
+        function removeTag(element) {
+            element.closest('.tag').remove();
+        }
+        
+        function getSelectedIngredients() {
+            const tags = document.querySelectorAll('#item-tags .tag');
+            return Array.from(tags).map(tag => tag.childNodes[0].textContent.trim());
+        }
+        
+        // Brewing Process
+        function attemptBrew() {
+            const base = document.getElementById('base-input').value.trim();
+            const temp = document.getElementById('temp-input').value.trim();
+            const items = getSelectedIngredients();
+            const roll = parseInt(document.getElementById('dice-roll').value) || 10;
+            
+            if (!base || !temp || items.length === 0) {
+                showToast('Please fill all brewing fields!', 'error');
+                return;
+            }
+            
+            // Generate random threshold (7-15)
+            const threshold = Math.floor(Math.random() * 9) + 7;
+            
+            // Check if successful
+            const success = roll >= threshold;
+            
+            // Display result
+            const resultPanel = document.getElementById('result-panel');
+            const resultTitle = document.getElementById('result-title');
+            const resultDesc = document.getElementById('result-desc');
+            
+            if (success) {
+                resultPanel.className = 'result-panel success';
+                resultTitle.innerHTML = '<i class="fas fa-check-circle"></i> Brewing Success!';
+                resultDesc.textContent = `Your potion brewed perfectly! (Roll: ${roll} vs Threshold: ${threshold})`;
+                
+                // Check for recipe match
+                const recipeMatch = checkRecipeMatch(base, temp, items);
+                if (recipeMatch) {
+                    // Add to discovered potions if not already there
+                    if (!appState.discoveredPotions.some(p => p.name === recipeMatch.name)) {
+                        appState.discoveredPotions.push({
+                            name: recipeMatch.name,
+                            base: base,
+                            temp: temp,
+                            items: items,
+                            timestamp: new Date().toISOString()
+                        });
+                        
+                        showToast(`Discovered new recipe: ${recipeMatch.name}!`, 'success');
+                        updateLibraryView();
+                    }
+                }
+            } else {
+                resultPanel.className = 'result-panel failure';
+                resultTitle.innerHTML = '<i class="fas fa-times-circle"></i> Brewing Failed';
+                resultDesc.textContent = `The potion fizzled and failed! (Roll: ${roll} vs Threshold: ${threshold})`;
+            }
+            
+            resultPanel.style.display = 'block';
+            saveToLocalStorage();
+        }
+        
+        function checkRecipeMatch(base, temp, items) {
+            for (const recipe of appState.recipes) {
+                // Skip DM-only recipes for players
+                if (recipe.dmOnly) continue;
+                
+                // Check each alternative
+                for (const alternative of recipe.alternatives) {
+                    let matches = true;
+                    let baseMatch = false;
+                    let tempMatch = false;
+                    let itemsMatch = true;
+                    
+                    for (const comp of alternative) {
+                        if (comp.type === 'base') {
+                            if (comp.value === base) baseMatch = true;
+                        } else if (comp.type === 'temp') {
+                            if (comp.value === temp) tempMatch = true;
+                        } else if (comp.type === 'item') {
+                            if (!items.includes(comp.value)) itemsMatch = false;
+                        }
+                    }
+                    
+                    // Check if we have all required components for this alternative
+                    if (baseMatch && tempMatch && itemsMatch) {
+                        return recipe;
+                    }
+                }
+            }
+            
+            return null;
+        }
+        
+        // Library View
+        function updateLibraryView() {
+            const container = document.getElementById('discovered-potions');
+            container.innerHTML = '';
+            
+            if (appState.discoveredPotions.length === 0) {
+                container.innerHTML = '<p>No potions discovered yet. Start brewing!</p>';
+                return;
+            }
+            
+            appState.discoveredPotions.forEach(potion => {
+                const card = document.createElement('div');
+                card.className = 'potion-card';
+                
+                card.innerHTML = `
+                    <div class="potion-name">${potion.name}</div>
+                    <div class="potion-ingredients">
+                        <span class="ingredient-badge">Base: ${potion.base}</span>
+                        <span class="ingredient-badge">Temp: ${potion.temp}</span>
+                        ${potion.items.map(item => `<span class="ingredient-badge">${item}</span>`).join('')}
+                    </div>
+                    <div class="potion-date">Discovered: ${new Date(potion.timestamp).toLocaleString()}</div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+        
+        // Admin Functions
+        function verifyAdmin() {
+            const input = document.getElementById('admin-key').value;
+            
+            if (input === appState.MASTER_KEY) {
+                document.getElementById('admin-gate').style.display = 'none';
+                document.getElementById('admin-tools').style.display = 'block';
+                showToast('Sanctum unlocked! Welcome, Master Alchemist.', 'success');
+                updateAllRecipesView();
+            } else {
+                showToast('Incorrect arcane sigil! Access denied.', 'error');
+            }
+        }
+        
+        function addComponent(containerId = 'recipe-components') {
+            const container = document.getElementById(containerId);
+            
+            const component = document.createElement('div');
+            component.className = 'component';
+            component.innerHTML = `
+                <select class="component-type">
+                    <option value="base">Base</option>
+                    <option value="temp">Temperature</option>
+                    <option value="item">Item</option>
+                </select>
+                <input type="text" class="component-value" placeholder="Value/Name">
+                <button class="btn btn-danger" onclick="removeComponent(this)"><i class="fas fa-times"></i></button>
+            `;
+            
+            container.appendChild(component);
+        }
+        
+        function removeComponent(button) {
+            button.closest('.component').remove();
+        }
+        
+        function addAlternative() {
+            const altCount = document.querySelectorAll('.alt-recipe').length + 2;
+            const altContainer = document.getElementById('alt-container');
+            
+            const altDiv = document.createElement('div');
+            altDiv.className = 'alt-recipe';
+            altDiv.innerHTML = `
+                <div class="alt-title">
+                    <i class="fas fa-vial"></i> Recipe Alternative #${altCount}
+                    <button class="btn btn-danger" onclick="removeAlternative(this)" style="margin-left: auto; padding: 5px 10px;">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                <div id="alt-components-${altCount}"></div>
+                <button class="btn" onclick="addComponent('alt-components-${altCount}')" style="margin-bottom: 15px;">
+                    <i class="fas fa-plus"></i> Add Component
+                </button>
+            `;
+            
+            altContainer.appendChild(altDiv);
+        }
+        
+        function removeAlternative(button) {
+            button.closest('.alt-recipe').remove();
+        }
+        
+        function forgeRecipe() {
+            const name = document.getElementById('recipe-name').value.trim();
+            if (!name) {
+                showToast('Please enter a potion name!', 'error');
+                return;
+            }
+            
+            // Get primary components
+            const primaryComponents = [];
+            const compElements = document.querySelectorAll('#recipe-components .component');
+            
+            compElements.forEach(comp => {
+                const type = comp.querySelector('.component-type').value;
+                const value = comp.querySelector('.component-value').value.trim();
+                
+                if (value) {
+                    primaryComponents.push({ type, value });
+                }
+            });
+            
+            if (primaryComponents.length === 0) {
+                showToast('Primary components must have values!', 'error');
+                return;
+            }
+            
+            // Get alternative components
+            const alternatives = [];
+            const altContainers = document.querySelectorAll('.alt-recipe');
+            
+            altContainers.forEach(alt => {
+                const comps = [];
+                const compElements = alt.querySelectorAll('.component');
+                
+                compElements.forEach(comp => {
+                    const type = comp.querySelector('.component-type').value;
+                    const value = comp.querySelector('.component-value').value.trim();
+                    
+                    if (value) {
+                        comps.push({ type, value });
+                    }
+                });
+                
+                if (comps.length > 0) {
+                    alternatives.push(comps);
+                }
+            });
+            
+            // Combine all alternatives
+            const allAlternatives = [primaryComponents, ...alternatives];
+            
+            const dmOnly = document.getElementById('dm-only').checked;
+            
+            // Create new recipe
+            const newRecipe = {
+                name: name,
+                alternatives: allAlternatives,
+                isSecret: true,
+                dmOnly: dmOnly
+            };
+            
+            // Add to recipes
+            appState.recipes.push(newRecipe);
+            showToast(`Recipe "${name}" forged successfully with ${allAlternatives.length} alternatives!`, 'success');
+            
+            // Reset form
+            document.getElementById('recipe-name').value = '';
+            document.getElementById('dm-only').checked = false;
+            
+            // Clear components
+            document.getElementById('recipe-components').innerHTML = '';
+            addComponent();
+            
+            // Clear alternatives
+            document.getElementById('alt-container').innerHTML = '';
+            
+            saveToLocalStorage();
+            updateAllRecipesView();
+        }
+        
+        function addIngredient() {
+            const name = document.getElementById('new-ingredient').value.trim();
+            const type = document.getElementById('ingredient-type').value;
+            
+            if (!name) {
+                showToast('Please enter an ingredient name!', 'error');
+                return;
+            }
+            
+            // Check if already exists
+            if (appState.ingredients.some(i => i.name.toLowerCase() === name.toLowerCase())) {
+                showToast('Ingredient already exists!', 'error');
+                return;
+            }
+            
+            // Add new ingredient
+            appState.ingredients.push({ name, type });
+            loadIngredients();
+            
+            document.getElementById('new-ingredient').value = '';
+            showToast(`Ingredient "${name}" added to grimoire!`, 'success');
+            saveToLocalStorage();
+        }
+        
+        // Update all recipes view in admin
+        function updateAllRecipesView() {
+            const container = document.getElementById('all-recipes');
+            container.innerHTML = '';
+            
+            if (appState.recipes.length === 0) {
+                container.innerHTML = '<p>No recipes created yet. Forge some recipes!</p>';
+                return;
+            }
+            
+            appState.recipes.forEach((recipe, index) => {
+                const card = document.createElement('div');
+                card.className = 'potion-card';
+                
+                if (recipe.dmOnly) {
+                    card.innerHTML += '<div class="potion-badge">DM Only</div>';
+                }
+                
+                card.innerHTML += `
+                    <div class="potion-name">${recipe.name}</div>
+                    <div class="potion-ingredients">
+                        ${recipe.dmOnly ? '<span class="ingredient-badge">Hidden from players</span>' : ''}
+                        <span class="ingredient-badge">${recipe.alternatives.length} Alternative${recipe.alternatives.length > 1 ? 's' : ''}</span>
+                    </div>
+                `;
+                
+                // Add alternatives
+                recipe.alternatives.forEach((alt, altIndex) => {
+                    const altDiv = document.createElement('div');
+                    altDiv.className = 'recipe-alternatives';
+                    
+                    altDiv.innerHTML = `
+                        <div class="alt-title">
+                            <i class="fas fa-vial"></i> Alternative #${altIndex + 1}
+                        </div>
+                        <div class="potion-ingredients">
+                            ${alt.map(comp => `<span class="ingredient-badge">${comp.type}: ${comp.value}</span>`).join('')}
+                        </div>
+                    `;
+                    
+                    card.appendChild(altDiv);
+                });
+                
+                container.appendChild(card);
+            });
+        }
+        
+        // Save/Load Functions
+        function saveGame(includeDiscoveries) {
+            const data = {
+                user: appState.currentUser,
+                discoveredPotions: includeDiscoveries ? appState.discoveredPotions : [],
+                dmSecrets: appState.dmSecrets,
+                timestamp: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+            const filename = includeDiscoveries ? 
+                `potion-brewer-save-${new Date().toISOString().slice(0,10)}.json` :
+                `dm-secrets-${new Date().toISOString().slice(0,10)}.json`;
+            
+            saveAs(blob, filename);
+            
+            showToast(`Game ${includeDiscoveries ? 'saved' : 'exported'} successfully!`, 'success');
+        }
+        
+        function loadGame(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    // Load discovered potions
+                    if (data.discoveredPotions && Array.isArray(data.discoveredPotions)) {
+                        appState.discoveredPotions = data.discoveredPotions;
+                    }
+                    
+                    // Load DM secrets
+                    if (data.dmSecrets && Array.isArray(data.dmSecrets)) {
+                        appState.dmSecrets = data.dmSecrets;
+                    }
+                    
+                    saveToLocalStorage();
+                    updateLibraryView();
+                    showToast('Game loaded successfully!', 'success');
+                } catch (error) {
+                    showToast('Invalid save file!', 'error');
+                    console.error(error);
+                }
+            };
+            reader.readAsText(file);
+        }
+        
+        function importDmSecrets() {
+            const fileInput = document.getElementById('dm-secrets');
+            const file = fileInput.files[0];
+            if (!file) {
+                showToast('Please select a file first!', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    if (data.dmSecrets && Array.isArray(data.dmSecrets)) {
+                        let count = 0;
+                        
+                        data.dmSecrets.forEach(secret => {
+                            if (!appState.dmSecrets.some(s => s.name === secret.name)) {
+                                appState.dmSecrets.push(secret);
+                                count++;
+                            }
+                        });
+                        
+                        saveToLocalStorage();
+                        showToast(`Imported ${count} DM secrets!`, 'success');
+                    } else {
+                        showToast('No DM secrets found in file!', 'error');
+                    }
+                } catch (error) {
+                    showToast('Invalid file format!', 'error');
+                    console.error(error);
+                }
+            };
+            reader.readAsText(file);
+        }
+        
+        // Local Storage
+        function saveToLocalStorage() {
+            localStorage.setItem('potionBrewer', JSON.stringify(appState));
+        }
+        
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('potionBrewer');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    
+                    // Merge data with defaults
+                    if (data.discoveredPotions) appState.discoveredPotions = data.discoveredPotions;
+                    if (data.dmSecrets) appState.dmSecrets = data.dmSecrets;
+                    if (data.ingredients) appState.ingredients = data.ingredients;
+                    if (data.recipes) appState.recipes = data.recipes;
+                    if (data.MASTER_KEY) appState.MASTER_KEY = data.MASTER_KEY;
+                    
+                    showToast('Game state loaded from local storage', 'success');
+                } catch (e) {
+                    console.error('Error loading from localStorage', e);
+                }
+            }
+        }
+        
+        // Toast notifications
+        function showToast(message, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type}`;
+            
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 100);
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Initialize app when page loads
+        window.onload = initApp;
+    </script>
+</body>
+</html>
