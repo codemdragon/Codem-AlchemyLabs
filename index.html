@@ -586,6 +586,53 @@
             justify-content: center;
         }
         
+        /* Modal for description editing */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: var(--card);
+            border-radius: 15px;
+            padding: 25px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 2px solid var(--primary);
+            position: relative;
+        }
+        
+        .modal-header {
+            margin-bottom: 20px;
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
         @media (max-width: 768px) {
             .add-ingredient-btn {
                 flex: 0 0 60px;
@@ -648,6 +695,26 @@
     <div class="floating-potions">🧪</div>
     <div class="floating-potions">⚗️</div>
     <div class="floating-potions">🔮</div>
+    
+    <!-- Description Edit Modal -->
+    <div class="modal" id="description-modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal()">&times;</button>
+            <div class="modal-header">
+                <h3 id="modal-title">Edit Description</h3>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="description-edit">Potion Description</label>
+                    <textarea id="description-edit" rows="6" placeholder="Describe the potion's effects..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-success" id="save-description-btn">Save Changes</button>
+            </div>
+        </div>
+    </div>
     
     <div class="container">
         <header>
@@ -763,7 +830,6 @@
                         <input type="text" id="recipe-name" placeholder="e.g. Potion of Invisibility">
                     </div>
                     
-                    <!-- Added description field -->
                     <div class="form-group">
                         <label for="recipe-description">Potion Description</label>
                         <textarea id="recipe-description" placeholder="Describe the potion's effects..."></textarea>
@@ -870,10 +936,9 @@
                         </button>
                     </div>
                     
-                    <button class="btn btn-dm" onclick="document.getElementById('dm-export').click()" style="margin-top: 10px;">
+                    <button class="btn btn-dm" onclick="exportDiscoveries()" style="margin-top: 10px;">
                         <i class="fas fa-file-export"></i> Export Only Discoveries
                     </button>
-                    <a id="dm-export" style="display:none"></a>
                 </div>
             </div>
         </div>
@@ -1252,7 +1317,6 @@
         
         function forgeRecipe() {
             const name = document.getElementById('recipe-name').value.trim();
-            // Get description
             const description = document.getElementById('recipe-description').value.trim();
             
             if (!name) {
@@ -1305,7 +1369,7 @@
             
             const dmOnly = document.getElementById('dm-only').checked;
             
-            // Create new recipe with description
+            // Create new recipe
             const newRecipe = {
                 name: name,
                 description: description,
@@ -1369,7 +1433,6 @@
             
             // Populate form
             document.getElementById('recipe-name').value = recipe.name;
-            // Populate description
             document.getElementById('recipe-description').value = recipe.description || '';
             document.getElementById('dm-only').checked = recipe.dmOnly;
             
@@ -1413,7 +1476,6 @@
             if (index === null) return;
             
             const name = document.getElementById('recipe-name').value.trim();
-            // Get description
             const description = document.getElementById('recipe-description').value.trim();
             
             if (!name) {
@@ -1466,7 +1528,7 @@
             
             const dmOnly = document.getElementById('dm-only').checked;
             
-            // Create new recipe object with description
+            // Create new recipe object
             const updatedRecipe = {
                 name: name,
                 description: description,
@@ -1517,7 +1579,6 @@
             
             // Populate form with just this alternative
             document.getElementById('recipe-name').value = recipe.name;
-            // Populate description
             document.getElementById('recipe-description').value = recipe.description || '';
             document.getElementById('dm-only').checked = recipe.dmOnly;
             
@@ -1569,20 +1630,33 @@
             saveToLocalStorage();
         }
 
-        // Delete alternative function
-        function deleteAlternative(recipeIndex, altIndex) {
-            const recipe = appState.recipes[recipeIndex];
-            if (recipe.alternatives.length <= 1) {
-                showToast('Cannot delete the only alternative!', 'error');
-                return;
-            }
+        // NEW: Edit description function
+        function editDescription(index) {
+            const recipe = appState.recipes[index];
+            appState.editingRecipeIndex = index;
             
-            if (confirm(`Delete alternative #${altIndex+1} of "${recipe.name}"?`)) {
-                recipe.alternatives.splice(altIndex, 1);
-                showToast(`Alternative deleted from "${recipe.name}"!`, 'success');
+            // Populate modal
+            document.getElementById('modal-title').textContent = `Edit Description: ${recipe.name}`;
+            document.getElementById('description-edit').value = recipe.description || '';
+            
+            // Set save button handler
+            document.getElementById('save-description-btn').onclick = () => {
+                const newDesc = document.getElementById('description-edit').value.trim();
+                appState.recipes[index].description = newDesc;
+                showToast(`Description for "${recipe.name}" updated!`, 'success');
+                closeModal();
                 updateAllRecipesView();
                 saveToLocalStorage();
-            }
+            };
+            
+            // Show modal
+            document.getElementById('description-modal').style.display = 'flex';
+        }
+        
+        // NEW: Close modal function
+        function closeModal() {
+            document.getElementById('description-modal').style.display = 'none';
+            appState.editingRecipeIndex = null;
         }
 
         // Cancel edit function
@@ -1600,6 +1674,22 @@
             document.getElementById('recipe-components').innerHTML = '';
             addComponent();
             document.getElementById('alt-container').innerHTML = '';
+        }
+
+        // Delete alternative function
+        function deleteAlternative(recipeIndex, altIndex) {
+            const recipe = appState.recipes[recipeIndex];
+            if (recipe.alternatives.length <= 1) {
+                showToast('Cannot delete the only alternative!', 'error');
+                return;
+            }
+            
+            if (confirm(`Delete alternative #${altIndex+1} of "${recipe.name}"?`)) {
+                recipe.alternatives.splice(altIndex, 1);
+                showToast(`Alternative deleted from "${recipe.name}"!`, 'success');
+                updateAllRecipesView();
+                saveToLocalStorage();
+            }
         }
 
         // Update all recipes view in admin
@@ -1678,25 +1768,34 @@
                 editBtn.innerHTML = '<i class="fas fa-edit"></i> Edit Recipe';
                 editBtn.onclick = () => editRecipe(index);
                 
+                // NEW: Add description edit button
+                const descBtn = document.createElement('button');
+                descBtn.className = 'btn btn-dm';
+                descBtn.innerHTML = '<i class="fas fa-pen"></i> Edit Description';
+                descBtn.onclick = () => editDescription(index);
+                
                 const deleteBtn = document.createElement('button');
-                    deleteBtn.className = 'btn btn-danger';
-                    deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Delete';
-                    deleteBtn.onclick = () => deleteRecipe(index);
-                    
-                    actions.appendChild(editBtn);
-                    actions.appendChild(deleteBtn);
-                    card.appendChild(actions);
-                    
-                    container.appendChild(card);
+                deleteBtn.className = 'btn btn-danger';
+                deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Delete';
+                deleteBtn.onclick = () => deleteRecipe(index);
+                
+                actions.appendChild(editBtn);
+                actions.appendChild(descBtn);
+                actions.appendChild(deleteBtn);
+                card.appendChild(actions);
+                
+                container.appendChild(card);
             });
         }
         
         // Save/Load Functions
         function saveGame(includeDiscoveries) {
             const data = {
-                user: appState.currentUser,
+                currentUser: appState.currentUser,
                 discoveredPotions: includeDiscoveries ? appState.discoveredPotions : [],
                 dmSecrets: appState.dmSecrets,
+                ingredients: appState.ingredients,
+                recipes: appState.recipes,
                 timestamp: new Date().toISOString()
             };
             
@@ -1719,18 +1818,16 @@
                 try {
                     const data = JSON.parse(e.target.result);
                     
-                    // Load discovered potions
-                    if (data.discoveredPotions && Array.isArray(data.discoveredPotions)) {
-                        appState.discoveredPotions = data.discoveredPotions;
-                    }
-                    
-                    // Load DM secrets
-                    if (data.dmSecrets && Array.isArray(data.dmSecrets)) {
-                        appState.dmSecrets = data.dmSecrets;
-                    }
+                    // Update state from loaded data
+                    if (data.currentUser) appState.currentUser = data.currentUser;
+                    if (data.discoveredPotions) appState.discoveredPotions = data.discoveredPotions;
+                    if (data.dmSecrets) appState.dmSecrets = data.dmSecrets;
+                    if (data.ingredients) appState.ingredients = data.ingredients;
+                    if (data.recipes) appState.recipes = data.recipes;
                     
                     saveToLocalStorage();
                     updateLibraryView();
+                    loadIngredients();
                     showToast('Game loaded successfully!', 'success');
                 } catch (error) {
                     showToast('Invalid save file!', 'error');
@@ -1774,6 +1871,15 @@
                 }
             };
             reader.readAsText(file);
+        }
+        
+        // NEW: Export only discoveries
+        function exportDiscoveries() {
+            const data = appState.discoveredPotions;
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+            const filename = `discoveries-export-${new Date().toISOString().slice(0,10)}.json`;
+            saveAs(blob, filename);
+            showToast('Exported discoveries!', 'success');
         }
         
         // Local Storage
