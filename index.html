@@ -549,24 +549,64 @@
             font-size: 0.8rem;
         }
         
+        /* New styles for description functionality */
+        .description-btn {
+            margin-top: 10px;
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            width: 100%;
+        }
+        
+        .potion-description {
+            display: none;
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            border-left: 3px solid var(--secondary);
+        }
+        
+        /* Mobile improvements */
+        .ingredient-input-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        
+        .add-ingredient-btn {
+            flex: 0 0 80px;
+            padding: 12px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
         @media (max-width: 768px) {
-            .flex-container {
-                flex-direction: column;
-            }
-            
-            nav {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .nav-btn {
-                width: 100%;
-                justify-content: center;
+            .add-ingredient-btn {
+                flex: 0 0 60px;
             }
             
             .dice-roll {
                 flex-direction: column;
-                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .dice-roll > div {
+                width: 100%;
+            }
+            
+            .dice {
+                margin: 0 auto;
+            }
+            
+            .nav-btn {
+                width: 100%;
+                text-align: center;
             }
         }
         
@@ -652,7 +692,12 @@
                             <div class="ingredient-tags" id="item-tags">
                                 <!-- Tags will appear here -->
                             </div>
-                            <input type="text" id="item-input" placeholder="Type an ingredient and press Enter">
+                            <div class="ingredient-input-container">
+                                <input type="text" id="item-input" placeholder="Type an ingredient">
+                                <button class="add-ingredient-btn" onclick="addIngredientTagFromInput()">
+                                    <i class="fas fa-plus"></i> Add
+                                </button>
+                            </div>
                         </div>
                         
                         <div class="dice-roll">
@@ -718,6 +763,12 @@
                         <input type="text" id="recipe-name" placeholder="e.g. Potion of Invisibility">
                     </div>
                     
+                    <!-- Added description field -->
+                    <div class="form-group">
+                        <label for="recipe-description">Potion Description</label>
+                        <textarea id="recipe-description" placeholder="Describe the potion's effects..."></textarea>
+                    </div>
+                    
                     <div class="form-group">
                         <label>Recipe Alternative #1</label>
                         <div id="recipe-components">
@@ -752,6 +803,9 @@
                     
                     <button class="btn btn-success" onclick="forgeRecipe()">
                         <i class="fas fa-hammer"></i> Forge Recipe
+                    </button>
+                    <button class="btn btn-warning" onclick="cancelEdit()" style="margin-left: 10px;">
+                        <i class="fas fa-times"></i> Cancel Edit
                     </button>
                 </div>
                 
@@ -852,6 +906,7 @@
             recipes: [
                 {
                     name: "Healing Brew",
+                    description: "Restores vitality and closes wounds. Has a sweet herbal aroma.",
                     alternatives: [
                         [
                             { type: "base", value: "Water" },
@@ -874,6 +929,7 @@
                 },
                 {
                     name: "Fire Resistance Potion",
+                    description: "Grants temporary immunity to fire and heat damage. Causes skin to glow faintly orange.",
                     alternatives: [
                         [
                             { type: "base", value: "Oil" },
@@ -908,23 +964,13 @@
             
             // Add ingredient on Enter key
             document.getElementById('item-input').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter' && this.value.trim() !== '') {
-                    addIngredientTag(this.value.trim());
-                    this.value = '';
+                if (e.key === 'Enter') {
+                    addIngredientTagFromInput();
                 }
             });
             
             // Load file handler
             document.getElementById('load-file').addEventListener('change', loadGame);
-
-            // Add cancel button to admin tools
-            const forgeButton = document.querySelector('#admin-tools .btn-success');
-            const cancelButton = document.createElement('button');
-            cancelButton.className = 'btn btn-warning';
-            cancelButton.innerHTML = '<i class="fas fa-times"></i> Cancel Edit';
-            cancelButton.onclick = cancelEdit;
-            cancelButton.style.marginLeft = '10px';
-            forgeButton.parentNode.appendChild(cancelButton);
         }
         
         // View Navigation
@@ -989,6 +1035,17 @@
             element.closest('.tag').remove();
         }
         
+        // NEW: Function to add ingredient from input field
+        function addIngredientTagFromInput() {
+            const input = document.getElementById('item-input');
+            const value = input.value.trim();
+            if (value !== '') {
+                addIngredientTag(value);
+                input.value = '';
+                input.focus();
+            }
+        }
+        
         function getSelectedIngredients() {
             const tags = document.querySelectorAll('#item-tags .tag');
             return Array.from(tags).map(tag => tag.childNodes[0].textContent.trim());
@@ -1029,6 +1086,7 @@
                     if (!appState.discoveredPotions.some(p => p.name === recipeMatch.name)) {
                         appState.discoveredPotions.push({
                             name: recipeMatch.name,
+                            description: recipeMatch.description || "No description available",
                             base: base,
                             temp: temp,
                             items: items,
@@ -1092,6 +1150,7 @@
             }
             
             appState.discoveredPotions.forEach(potion => {
+                const safeName = potion.name.replace(/\s+/g, '-');
                 const card = document.createElement('div');
                 card.className = 'potion-card';
                 
@@ -1103,10 +1162,30 @@
                         ${potion.items.map(item => `<span class="ingredient-badge">${item}</span>`).join('')}
                     </div>
                     <div class="potion-date">Discovered: ${new Date(potion.timestamp).toLocaleString()}</div>
+                    <div class="potion-description" id="desc-${safeName}">
+                        <strong>Description:</strong> ${potion.description || "No description available"}
+                    </div>
+                    <button class="btn description-btn" onclick="toggleDescription('${safeName}')">
+                        <i class="fas fa-info-circle"></i> Show Description
+                    </button>
                 `;
                 
                 container.appendChild(card);
             });
+        }
+        
+        // NEW: Toggle potion description visibility
+        function toggleDescription(id) {
+            const desc = document.getElementById(`desc-${id}`);
+            const btn = document.querySelector(`#desc-${id} + .description-btn`);
+            
+            if (desc.style.display === 'block') {
+                desc.style.display = 'none';
+                btn.innerHTML = '<i class="fas fa-info-circle"></i> Show Description';
+            } else {
+                desc.style.display = 'block';
+                btn.innerHTML = '<i class="fas fa-info-circle"></i> Hide Description';
+            }
         }
         
         // Admin Functions
@@ -1173,6 +1252,9 @@
         
         function forgeRecipe() {
             const name = document.getElementById('recipe-name').value.trim();
+            // Get description
+            const description = document.getElementById('recipe-description').value.trim();
+            
             if (!name) {
                 showToast('Please enter a potion name!', 'error');
                 return;
@@ -1223,9 +1305,10 @@
             
             const dmOnly = document.getElementById('dm-only').checked;
             
-            // Create new recipe
+            // Create new recipe with description
             const newRecipe = {
                 name: name,
+                description: description,
                 alternatives: allAlternatives,
                 isSecret: true,
                 dmOnly: dmOnly
@@ -1237,6 +1320,7 @@
             
             // Reset form
             document.getElementById('recipe-name').value = '';
+            document.getElementById('recipe-description').value = '';
             document.getElementById('dm-only').checked = false;
             
             // Clear components
@@ -1285,6 +1369,8 @@
             
             // Populate form
             document.getElementById('recipe-name').value = recipe.name;
+            // Populate description
+            document.getElementById('recipe-description').value = recipe.description || '';
             document.getElementById('dm-only').checked = recipe.dmOnly;
             
             // Clear existing components
@@ -1327,6 +1413,9 @@
             if (index === null) return;
             
             const name = document.getElementById('recipe-name').value.trim();
+            // Get description
+            const description = document.getElementById('recipe-description').value.trim();
+            
             if (!name) {
                 showToast('Please enter a potion name!', 'error');
                 return;
@@ -1377,15 +1466,16 @@
             
             const dmOnly = document.getElementById('dm-only').checked;
             
-            // Create new recipe object (even though we're updating, this structure is consistent)
+            // Create new recipe object with description
             const updatedRecipe = {
                 name: name,
+                description: description,
                 alternatives: allAlternatives,
-                isSecret: true, // Assuming it remains secret
+                isSecret: true,
                 dmOnly: dmOnly
             };
             
-            // Update existing recipe instead of pushing new one
+            // Update existing recipe
             appState.recipes[index] = updatedRecipe;
             
             // Reset editing state
@@ -1398,9 +1488,10 @@
             
             // Reset form
             document.getElementById('recipe-name').value = '';
+            document.getElementById('recipe-description').value = '';
             document.getElementById('dm-only').checked = false;
             document.getElementById('recipe-components').innerHTML = '';
-            addComponent(); // Add one empty component
+            addComponent();
             document.getElementById('alt-container').innerHTML = '';
 
             updateAllRecipesView();
@@ -1426,6 +1517,8 @@
             
             // Populate form with just this alternative
             document.getElementById('recipe-name').value = recipe.name;
+            // Populate description
+            document.getElementById('recipe-description').value = recipe.description || '';
             document.getElementById('dm-only').checked = recipe.dmOnly;
             
             // Clear components
@@ -1502,9 +1595,10 @@
             
             // Reset form
             document.getElementById('recipe-name').value = '';
+            document.getElementById('recipe-description').value = '';
             document.getElementById('dm-only').checked = false;
             document.getElementById('recipe-components').innerHTML = '';
-            addComponent(); // Add one empty component
+            addComponent();
             document.getElementById('alt-container').innerHTML = '';
         }
 
@@ -1528,6 +1622,9 @@
                 
                 card.innerHTML += `
                     <div class="potion-name">${recipe.name}</div>
+                    <div class="potion-description">
+                        <strong>Description:</strong> ${recipe.description || "No description available"}
+                    </div>
                     <div class="potion-ingredients">
                         ${recipe.dmOnly ? '<span class="ingredient-badge">Hidden from players</span>' : ''}
                         <span class="ingredient-badge">${recipe.alternatives.length} Alternative${recipe.alternatives.length > 1 ? 's' : ''}</span>
@@ -1582,15 +1679,15 @@
                 editBtn.onclick = () => editRecipe(index);
                 
                 const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'btn btn-danger';
-                deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Delete';
-                deleteBtn.onclick = () => deleteRecipe(index);
-                
-                actions.appendChild(editBtn);
-                actions.appendChild(deleteBtn);
-                card.appendChild(actions);
-                
-                container.appendChild(card);
+                    deleteBtn.className = 'btn btn-danger';
+                    deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Delete';
+                    deleteBtn.onclick = () => deleteRecipe(index);
+                    
+                    actions.appendChild(editBtn);
+                    actions.appendChild(deleteBtn);
+                    card.appendChild(actions);
+                    
+                    container.appendChild(card);
             });
         }
         
